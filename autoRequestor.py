@@ -2,10 +2,51 @@
 
 from bs4 import BeautifulSoup
 import codecs
+import json
+import os
 import requests
 import sys
 import time
 import threading
+
+def pause_json_file(path):
+    ret = {}
+    with codecs.open(path, 'r', 'utf-8') as f:
+        ret = json.load(f)
+    return ret
+
+class Scriptinvoker_manager():
+    '''
+    manage Script_invoker
+    '''
+    def __init__(self, variant_file, script_file, form_define_file):
+        _check_exists_file(variant_file)
+        _check_exists_file(script_file)
+        _check_exists_file(form_define_file)
+        self.invokers = []
+        script_reader = Script_reader(script_file)
+        form_define_reader = Form_define_reader(form_define_file)
+        for vars in self._read_variant_file(variant_file):
+            self.invokers.add(Script_invoker(Script_reader, Form_define_reader, vars))
+
+    def _check_exists_file(path):
+        if not os.path.exists(path):
+            raise Exception('not found file: %s' % (path, ))
+
+    def invoke(self, exec_time):
+        print('[*] start ')
+        for var in self.vars:
+            var.start()
+        time.sleep(exec_time)
+        for var in self.vars:
+            var.kill = True
+
+
+    def _read_variant_file(self, variant_file):
+        ret = {}
+        with codecs.open(variant_file, 'r', 'utf-8') as f:
+            ret = json.load(f)
+        return ret
 
 
 class Script_invoker(threading.Thread):
